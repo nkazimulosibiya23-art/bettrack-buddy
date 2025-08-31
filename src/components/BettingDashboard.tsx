@@ -25,6 +25,7 @@ export default function BettingDashboard() {
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [newPlayer, setNewPlayer] = useState("");
   const [newEarning, setNewEarning] = useState("");
+  const [showAllPlayers, setShowAllPlayers] = useState(false);
   const { toast } = useToast();
 
   // Add a new player
@@ -120,6 +121,39 @@ export default function BettingDashboard() {
   const totalWinnings = players.reduce((sum, player) => sum + player.totalEarnings, 0);
   const profitablePlayers = players.filter(player => player.totalEarnings > 0).length;
   
+  // Generate chart data for all players
+  const generateAllPlayersData = () => {
+    const allMatches = new Set<string>();
+    players.forEach(player => {
+      player.earnings.forEach(earning => allMatches.add(earning.match));
+    });
+    
+    const sortedMatches = Array.from(allMatches).sort();
+    
+    return sortedMatches.map(match => {
+      const dataPoint: any = { match };
+      players.forEach(player => {
+        const earning = player.earnings.find(e => e.match === match);
+        dataPoint[player.name] = earning ? earning.total : null;
+      });
+      return dataPoint;
+    });
+  };
+
+  // Player colors for multi-player chart
+  const playerColors = [
+    "hsl(var(--success))",
+    "hsl(var(--primary))", 
+    "hsl(var(--danger))",
+    "#8B5CF6", // Purple
+    "#F59E0B", // Orange
+    "#10B981", // Emerald
+    "#EF4444", // Red
+    "#3B82F6", // Blue
+    "#8B5A2B", // Brown
+    "#EC4899"  // Pink
+  ];
+  
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
@@ -155,7 +189,10 @@ export default function BettingDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="hover-lift transition-smooth">
+          <Card className="hover-lift transition-smooth cursor-pointer" onClick={() => {
+            setShowAllPlayers(true);
+            setSelectedPlayer(null);
+          }}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -237,7 +274,10 @@ export default function BettingDashboard() {
                           ? "border-primary bg-primary/5 shadow-glow" 
                           : "border-border bg-card hover:border-primary/50"
                       }`}
-                      onClick={() => setSelectedPlayer(player)}
+                       onClick={() => {
+                         setSelectedPlayer(player);
+                         setShowAllPlayers(false);
+                       }}
                     >
                       <div className="flex justify-between items-center">
                         <span className="font-medium">{player.name}</span>
@@ -266,11 +306,59 @@ export default function BettingDashboard() {
             <CardHeader className="bg-gradient-success rounded-t-lg">
               <CardTitle className="text-success-foreground flex items-center gap-2">
                 <TrendingUp className="h-5 w-5" />
-                {selectedPlayer ? `${selectedPlayer.name}'s Performance` : "Select a Player"}
+                {showAllPlayers ? "All Players Performance" : selectedPlayer ? `${selectedPlayer.name}'s Performance` : "Select a Player"}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6">
-              {selectedPlayer ? (
+              {showAllPlayers ? (
+                <div className="space-y-6">
+                  {players.length > 0 && players.some(p => p.earnings.length > 0) ? (
+                    <div className="chart-container">
+                      <h3 className="font-semibold mb-4">Cumulative Earnings Comparison</h3>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <LineChart data={generateAllPlayersData()}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                          <XAxis 
+                            dataKey="match" 
+                            stroke="hsl(var(--muted-foreground))"
+                            fontSize={12}
+                          />
+                          <YAxis 
+                            stroke="hsl(var(--muted-foreground))"
+                            fontSize={12}
+                          />
+                          <Tooltip 
+                            contentStyle={{
+                              backgroundColor: "hsl(var(--card))",
+                              border: "1px solid hsl(var(--border))",
+                              borderRadius: "var(--radius)"
+                            }}
+                          />
+                          <Legend />
+                          {players.map((player, idx) => (
+                            <Line 
+                              key={player.name}
+                              type="monotone" 
+                              dataKey={player.name} 
+                              stroke={playerColors[idx % playerColors.length]} 
+                              strokeWidth={3}
+                              dot={{ fill: playerColors[idx % playerColors.length], strokeWidth: 2, r: 4 }}
+                              activeDot={{ r: 6, stroke: playerColors[idx % playerColors.length], strokeWidth: 2 }}
+                              name={`${player.name} (R)`}
+                              connectNulls={false}
+                            />
+                          ))}
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  ) : (
+                    <div className="chart-container text-center py-12">
+                      <TrendingUp className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
+                      <p className="text-muted-foreground">No earnings data available. Add players and earnings to see the comparison chart!</p>
+                    </div>
+                  )}
+                </div>
+              ) : selectedPlayer ? (
                 <div className="space-y-6">
                   {/* Add Earning Section */}
                   <div className="flex gap-2">
