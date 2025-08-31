@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,50 @@ export default function BettingDashboard() {
   const [newEarning, setNewEarning] = useState("");
   const [showAllPlayers, setShowAllPlayers] = useState(false);
   const { toast } = useToast();
+
+  // Load data from localStorage on component mount
+  useEffect(() => {
+    const savedPlayers = localStorage.getItem('bettingDashboard-players');
+    const savedSelectedPlayer = localStorage.getItem('bettingDashboard-selectedPlayer');
+    const savedShowAllPlayers = localStorage.getItem('bettingDashboard-showAllPlayers');
+    
+    if (savedPlayers) {
+      try {
+        const parsedPlayers = JSON.parse(savedPlayers);
+        setPlayers(parsedPlayers);
+      } catch (error) {
+        console.error('Error loading players data:', error);
+      }
+    }
+    
+    if (savedSelectedPlayer) {
+      try {
+        const parsedSelectedPlayer = JSON.parse(savedSelectedPlayer);
+        setSelectedPlayer(parsedSelectedPlayer);
+      } catch (error) {
+        console.error('Error loading selected player:', error);
+      }
+    }
+    
+    if (savedShowAllPlayers) {
+      setShowAllPlayers(savedShowAllPlayers === 'true');
+    }
+  }, []);
+
+  // Save players data to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('bettingDashboard-players', JSON.stringify(players));
+  }, [players]);
+
+  // Save selected player to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('bettingDashboard-selectedPlayer', JSON.stringify(selectedPlayer));
+  }, [selectedPlayer]);
+
+  // Save showAllPlayers to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('bettingDashboard-showAllPlayers', showAllPlayers.toString());
+  }, [showAllPlayers]);
 
   // Add a new player
   const handleAddPlayer = () => {
